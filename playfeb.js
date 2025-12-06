@@ -38,23 +38,25 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Network Configuration Object
+// Network Configuration Object - ALL VALUES IN ONE PLACE
 var NETWORK_CONFIG = {
     testnet: {
         SUI_NETWORK: "https://fullnode.testnet.sui.io:443",
-        PACKAGE_ID: "",  // Add your testnet package ID
-        PUBLISHER_ID: "",  // Add your testnet publisher ID
-        TRANSFER_POLICY_ID: "",  // Add your testnet transfer policy ID
-        TRANSFER_POLICY_CAP_ID: "",  // Add your testnet transfer policy cap ID
-        COLLECTION_ID: "",  // Add your testnet collection ID
-        KIOSK_ID: "",  // Add your testnet kiosk ID
-        KIOSK_OWNER_CAP_ID: "",  // Add your testnet kiosk owner cap ID
-        SUPPLY_CAP_ID: "",  // Add your testnet supply cap ID
-        COUNTER_ID: "",  // Add your testnet counter ID
-        BLASTWHEELZ_TYPE: "",  // Add your testnet blastwheelz type (e.g., "0x...::blastwheelz::Mustang")
-        LISTING_PRICE_MIST: 100000000,  // Default listing price in MIST
-        MINT_SUPPLY: 10,  // Default mint supply
-        NEW_SUPPLY_LIMIT: 500,  // Default supply limit
+        PACKAGE_ID: "0x3d061329bf5b7ed4cf8e0306b4bb809a977a65132ee1d412aaa8c0b598186ea5",
+        PUBLISHER_ID: "0x98d1dac76ac8e272f7966f23c38d5e3629f70fdc2c4d8db9f99145fca5353854",
+        TRANSFER_POLICY_ID: "0xfdb7a33ba1ff862c08ac2709de9b7a332ef6dd2641d07f07e56ee0721d4ac36a",
+        TRANSFER_POLICY_CAP_ID: "0x977e5c69c21978782fccc827fdac21b5daa27ecb5bfb3a8fa7694e7bb613f5ed",
+        COLLECTION_ID: "0x4e53a9cda7c58569cdfb40f72506622f47728928eb7fba356faae551a7e379fa",
+        KIOSK_ID: "",  // Created when minting
+        KIOSK_OWNER_CAP_ID: "",  // Created when minting
+        SUPPLY_CAP_ID: "",  // Created when creating collection
+        COUNTER_ID: "",  // Created when creating collection
+        BLASTWHEELZ_TYPE: "0x3d061329bf5b7ed4cf8e0306b4bb809a977a65132ee1d412aaa8c0b598186ea5::blastwheelz::Mustang",
+        PRIVATE_KEY: "suiprivkey1qpqvahn5pprg8w7hqve5n5k4q2vp932pwgu3nwl9d6792jrx0rxh2wcknyz",
+        ADMIN_CAP_ID: "0x544029d5c5c59b2595b1708557a63ed7b220287a1fdf5e6704f2611101f6dd05",
+        LISTING_PRICE_MIST: 100000000,
+        MINT_SUPPLY: 10,
+        NEW_SUPPLY_LIMIT: 500,
         ENVIRONMENT: "testnet"
     },
     mainnet: {
@@ -64,14 +66,16 @@ var NETWORK_CONFIG = {
         TRANSFER_POLICY_ID: "",  // Add your mainnet transfer policy ID
         TRANSFER_POLICY_CAP_ID: "",  // Add your mainnet transfer policy cap ID
         COLLECTION_ID: "",  // Add your mainnet collection ID
-        KIOSK_ID: "",  // Add your mainnet kiosk ID
-        KIOSK_OWNER_CAP_ID: "",  // Add your mainnet kiosk owner cap ID
-        SUPPLY_CAP_ID: "",  // Add your mainnet supply cap ID
-        COUNTER_ID: "",  // Add your mainnet counter ID
-        BLASTWHEELZ_TYPE: "",  // Add your mainnet blastwheelz type (e.g., "0x...::blastwheelz::Mustang")
-        LISTING_PRICE_MIST: 100000000,  // Default listing price in MIST
-        MINT_SUPPLY: 10,  // Default mint supply
-        NEW_SUPPLY_LIMIT: 500,  // Default supply limit
+        KIOSK_ID: "",  // Created when minting
+        KIOSK_OWNER_CAP_ID: "",  // Created when minting
+        SUPPLY_CAP_ID: "",  // Created when creating collection
+        COUNTER_ID: "",  // Created when creating collection
+        BLASTWHEELZ_TYPE: "",  // Add your mainnet blastwheelz type
+        PRIVATE_KEY: "",  // Add your mainnet private key
+        ADMIN_CAP_ID: "",  // Add your mainnet admin cap ID
+        LISTING_PRICE_MIST: 100000000,
+        MINT_SUPPLY: 10,
+        NEW_SUPPLY_LIMIT: 500,
         ENVIRONMENT: "mainnet"
     }
 };
