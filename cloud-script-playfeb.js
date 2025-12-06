@@ -29,6 +29,598 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// NETWORK CONFIGURATION - TESTNET AND MAINNET
+//
+// This section defines configuration variables for both testnet and mainnet environments.
+// You can switch between environments by passing 'network' parameter in function calls,
+// or by setting it in PlayFab Title Data.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Network Configuration Object
+var NETWORK_CONFIG = {
+    testnet: {
+        SUI_NETWORK: "https://fullnode.testnet.sui.io:443",
+        PACKAGE_ID: "",  // Add your testnet package ID
+        PUBLISHER_ID: "",  // Add your testnet publisher ID
+        TRANSFER_POLICY_ID: "",  // Add your testnet transfer policy ID
+        TRANSFER_POLICY_CAP_ID: "",  // Add your testnet transfer policy cap ID
+        COLLECTION_ID: "",  // Add your testnet collection ID
+        KIOSK_ID: "",  // Add your testnet kiosk ID
+        KIOSK_OWNER_CAP_ID: "",  // Add your testnet kiosk owner cap ID
+        SUPPLY_CAP_ID: "",  // Add your testnet supply cap ID
+        COUNTER_ID: "",  // Add your testnet counter ID
+        BLASTWHEELZ_TYPE: "",  // Add your testnet blastwheelz type (e.g., "0x...::blastwheelz::Mustang")
+        LISTING_PRICE_MIST: 100000000,  // Default listing price in MIST
+        MINT_SUPPLY: 10,  // Default mint supply
+        NEW_SUPPLY_LIMIT: 500,  // Default supply limit
+        ENVIRONMENT: "testnet"
+    },
+    mainnet: {
+        SUI_NETWORK: "https://fullnode.mainnet.sui.io:443",
+        PACKAGE_ID: "",  // Add your mainnet package ID
+        PUBLISHER_ID: "",  // Add your mainnet publisher ID
+        TRANSFER_POLICY_ID: "",  // Add your mainnet transfer policy ID
+        TRANSFER_POLICY_CAP_ID: "",  // Add your mainnet transfer policy cap ID
+        COLLECTION_ID: "",  // Add your mainnet collection ID
+        KIOSK_ID: "",  // Add your mainnet kiosk ID
+        KIOSK_OWNER_CAP_ID: "",  // Add your mainnet kiosk owner cap ID
+        SUPPLY_CAP_ID: "",  // Add your mainnet supply cap ID
+        COUNTER_ID: "",  // Add your mainnet counter ID
+        BLASTWHEELZ_TYPE: "",  // Add your mainnet blastwheelz type (e.g., "0x...::blastwheelz::Mustang")
+        LISTING_PRICE_MIST: 100000000,  // Default listing price in MIST
+        MINT_SUPPLY: 10,  // Default mint supply
+        NEW_SUPPLY_LIMIT: 500,  // Default supply limit
+        ENVIRONMENT: "mainnet"
+    }
+};
+
+// Helper function to get current network configuration
+// Priority: 1) args.network parameter, 2) Title Data, 3) Default to testnet
+function getNetworkConfig(args) {
+    var network = "testnet"; // Default to testnet for safety
+    
+    // Check if network is passed in args
+    if (args && args.network) {
+        network = args.network.toLowerCase();
+    } else {
+        // Try to get from Title Data (recommended approach)
+        try {
+            var titleData = server.GetTitleData({ Keys: ["NETWORK_ENVIRONMENT"] });
+            if (titleData.Data && titleData.Data["NETWORK_ENVIRONMENT"]) {
+                network = titleData.Data["NETWORK_ENVIRONMENT"].toLowerCase();
+            }
+        } catch (e) {
+            log.debug("Could not fetch network from Title Data, using default: " + network);
+        }
+    }
+    
+    // Validate network
+    if (network !== "testnet" && network !== "mainnet") {
+        log.warning("Invalid network specified: " + network + ". Defaulting to testnet.");
+        network = "testnet";
+    }
+    
+    var config = NETWORK_CONFIG[network];
+    if (!config) {
+        log.error("Network config not found for: " + network);
+        config = NETWORK_CONFIG.testnet; // Fallback to testnet
+    }
+    
+    log.debug("Using network configuration: " + network);
+    return {
+        config: config,
+        network: network
+    };
+}
+
+// Helper function to get a specific config value
+function getConfigValue(args, key) {
+    var networkInfo = getNetworkConfig(args);
+    return networkInfo.config[key];
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// TESTING AND UTILITY FUNCTIONS
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Test function to display all network configuration variables
+// Usage: Call with { network: "testnet" } or { network: "mainnet" }
+handlers.getNetworkConfig = function (args, context) {
+    var networkInfo = getNetworkConfig(args);
+    
+    log.info("Network Configuration Requested", {
+        network: networkInfo.network,
+        playerId: currentPlayerId
+    });
+    
+    // Return config (excluding sensitive data if needed)
+    return {
+        network: networkInfo.network,
+        config: networkInfo.config,
+        message: "Network configuration retrieved successfully"
+    };
+};
+
+// Function to validate network configuration
+// Checks if all required variables are set
+handlers.validateNetworkConfig = function (args, context) {
+    var networkInfo = getNetworkConfig(args);
+    var config = networkInfo.config;
+    var missing = [];
+    var warnings = [];
+    
+    // Required fields
+    var requiredFields = [
+        "SUI_NETWORK",
+        "PACKAGE_ID",
+        "PUBLISHER_ID"
+    ];
+    
+    // Important but not always required
+    var importantFields = [
+        "COLLECTION_ID",
+        "TRANSFER_POLICY_ID"
+    ];
+    
+    // Check required fields
+    for (var i = 0; i < requiredFields.length; i++) {
+        if (!config[requiredFields[i]] || config[requiredFields[i]] === "") {
+            missing.push(requiredFields[i]);
+        }
+    }
+    
+    // Check important fields
+    for (var j = 0; j < importantFields.length; j++) {
+        if (!config[importantFields[j]] || config[importantFields[j]] === "") {
+            warnings.push(importantFields[j]);
+        }
+    }
+    
+    var isValid = missing.length === 0;
+    
+    if (!isValid) {
+        log.error("Network configuration validation failed", {
+            network: networkInfo.network,
+            missing: missing,
+            warnings: warnings
+        });
+    } else {
+        log.info("Network configuration validated successfully", {
+            network: networkInfo.network,
+            warnings: warnings
+        });
+    }
+    
+    return {
+        network: networkInfo.network,
+        isValid: isValid,
+        missing: missing,
+        warnings: warnings,
+        message: isValid ? "Configuration is valid" : "Configuration has missing required fields"
+    };
+};
+
+// Example function using network configuration
+// This demonstrates how to use the config in your functions
+handlers.getSuiNetworkInfo = function (args, context) {
+    var networkInfo = getNetworkConfig(args);
+    var config = networkInfo.config;
+    
+    return {
+        network: networkInfo.network,
+        suiNetworkUrl: config.SUI_NETWORK,
+        packageId: config.PACKAGE_ID,
+        collectionId: config.COLLECTION_ID,
+        message: "Sui network information retrieved"
+    };
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// NFT MINTING AND TRANSFER FUNCTIONS
+//
+// These functions handle minting and transferring NFTs on the Sui blockchain.
+// They use the network configuration to determine testnet vs mainnet.
+//
+// Note: PlayFab Cloud Script cannot directly sign blockchain transactions.
+// These functions prepare transaction data and can optionally call a backend service
+// that handles the actual transaction signing and execution.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Mint NFT Function
+// Parameters:
+//   - network: "testnet" or "mainnet" (optional, uses Title Data if not provided)
+//   - name: NFT name (required)
+//   - imageUrl: NFT image URL (required)
+//   - projectUrl: Project URL (required)
+//   - alloyRim: Alloy rim description (required)
+//   - frontBonnet: Front bonnet description (required)
+//   - backBonnet: Back bonnet description (required)
+//   - backendServiceUrl: Optional URL to backend service that executes the transaction
+//   - playerSuiAddress: Optional Sui address of the player (for tracking)
+handlers.mintNFT = function (args, context) {
+    try {
+        // Get network configuration
+        var networkInfo = getNetworkConfig(args);
+        var config = networkInfo.config;
+        
+        // Validate required configuration
+        if (!config.PACKAGE_ID || config.PACKAGE_ID === "") {
+            throw new Error("PACKAGE_ID not configured for " + networkInfo.network);
+        }
+        if (!config.COLLECTION_ID || config.COLLECTION_ID === "") {
+            throw new Error("COLLECTION_ID not configured for " + networkInfo.network);
+        }
+        if (!config.TRANSFER_POLICY_ID || config.TRANSFER_POLICY_ID === "") {
+            throw new Error("TRANSFER_POLICY_ID not configured for " + networkInfo.network);
+        }
+        
+        // Validate required parameters
+        if (!args.name) {
+            throw new Error("name parameter is required");
+        }
+        if (!args.imageUrl) {
+            throw new Error("imageUrl parameter is required");
+        }
+        if (!args.projectUrl) {
+            throw new Error("projectUrl parameter is required");
+        }
+        if (!args.alloyRim) {
+            throw new Error("alloyRim parameter is required");
+        }
+        if (!args.frontBonnet) {
+            throw new Error("frontBonnet parameter is required");
+        }
+        if (!args.backBonnet) {
+            throw new Error("backBonnet parameter is required");
+        }
+        
+        // Get or construct BLASTWHEELZ_TYPE
+        var blastwheelzType = config.BLASTWHEELZ_TYPE;
+        if (!blastwheelzType || blastwheelzType === "") {
+            // Construct default type if not set
+            blastwheelzType = config.PACKAGE_ID + "::blastwheelz::Mustang";
+        }
+        
+        // Prepare transaction data
+        var transactionData = {
+            network: networkInfo.network,
+            suiNetworkUrl: config.SUI_NETWORK,
+            function: "mint",
+            packageId: config.PACKAGE_ID,
+            module: "blastwheelz",
+            functionName: "mint",
+            typeArguments: [blastwheelzType],
+            arguments: {
+                collection: config.COLLECTION_ID,
+                policy: config.TRANSFER_POLICY_ID,
+                name: args.name,
+                imageUrl: args.imageUrl,
+                projectUrl: args.projectUrl,
+                alloyRim: args.alloyRim,
+                frontBonnet: args.frontBonnet,
+                backBonnet: args.backBonnet
+            },
+            gasBudget: 150000000, // 0.15 SUI
+            playerId: currentPlayerId,
+            playerSuiAddress: args.playerSuiAddress || null,
+            timestamp: new Date().toISOString()
+        };
+        
+        log.info("Mint NFT Request", {
+            playerId: currentPlayerId,
+            network: networkInfo.network,
+            nftName: args.name
+        });
+        
+        // Store mint request in player data for tracking
+        server.UpdateUserInternalData({
+            PlayFabId: currentPlayerId,
+            Data: {
+                lastMintRequest: JSON.stringify({
+                    timestamp: transactionData.timestamp,
+                    network: networkInfo.network,
+                    nftName: args.name,
+                    status: "pending"
+                })
+            }
+        });
+        
+        // If backend service URL is provided, call it to execute the transaction
+        if (args.backendServiceUrl) {
+            try {
+                var backendRequest = {
+                    action: "mint",
+                    transactionData: transactionData,
+                    playerId: currentPlayerId
+                };
+                
+                var backendResponse = http.request(
+                    args.backendServiceUrl,
+                    "post",
+                    JSON.stringify(backendRequest),
+                    "application/json",
+                    {
+                        "Content-Type": "application/json"
+                    }
+                );
+                
+                log.info("Backend service called for mint", {
+                    statusCode: backendResponse.Code,
+                    playerId: currentPlayerId
+                });
+                
+                return {
+                    success: true,
+                    network: networkInfo.network,
+                    transactionData: transactionData,
+                    backendResponse: JSON.parse(backendResponse.Data || "{}"),
+                    message: "Mint request sent to backend service"
+                };
+            } catch (httpError) {
+                log.error("Error calling backend service", {
+                    error: httpError.message,
+                    playerId: currentPlayerId
+                });
+                
+                // Return transaction data even if backend call fails
+                return {
+                    success: true,
+                    network: networkInfo.network,
+                    transactionData: transactionData,
+                    backendError: httpError.message,
+                    message: "Transaction data prepared, but backend service call failed"
+                };
+            }
+        }
+        
+        // Return transaction data for client/backend to execute
+        return {
+            success: true,
+            network: networkInfo.network,
+            transactionData: transactionData,
+            message: "Mint transaction data prepared. Execute using a backend service or Sui client."
+        };
+        
+    } catch (error) {
+        log.error("Error in mintNFT", {
+            error: error.message,
+            playerId: currentPlayerId
+        });
+        
+        return {
+            success: false,
+            error: error.message,
+            message: "Failed to prepare mint transaction"
+        };
+    }
+};
+
+// Transfer NFT Function
+// Parameters:
+//   - network: "testnet" or "mainnet" (optional, uses Title Data if not provided)
+//   - nftObjectId: The NFT object ID to transfer (required)
+//   - recipient: Recipient Sui address (required)
+//   - backendServiceUrl: Optional URL to backend service that executes the transaction
+//   - playerSuiAddress: Optional Sui address of the sender (for validation)
+handlers.transferNFT = function (args, context) {
+    try {
+        // Get network configuration
+        var networkInfo = getNetworkConfig(args);
+        var config = networkInfo.config;
+        
+        // Validate required parameters
+        if (!args.nftObjectId) {
+            throw new Error("nftObjectId parameter is required");
+        }
+        if (!args.recipient) {
+            throw new Error("recipient parameter is required (Sui address)");
+        }
+        
+        // Basic validation of Sui address format
+        if (!args.recipient.startsWith("0x") || args.recipient.length < 40) {
+            throw new Error("Invalid recipient address format. Must be a valid Sui address starting with 0x");
+        }
+        
+        // Get or construct BLASTWHEELZ_TYPE
+        var blastwheelzType = config.BLASTWHEELZ_TYPE;
+        if (!blastwheelzType || blastwheelzType === "") {
+            // Construct default type if not set
+            blastwheelzType = config.PACKAGE_ID + "::blastwheelz::Mustang";
+        }
+        
+        // Prepare transaction data
+        var transactionData = {
+            network: networkInfo.network,
+            suiNetworkUrl: config.SUI_NETWORK,
+            function: "transfer",
+            nftObjectId: args.nftObjectId,
+            recipient: args.recipient,
+            gasBudget: 10000000, // 0.01 SUI
+            playerId: currentPlayerId,
+            playerSuiAddress: args.playerSuiAddress || null,
+            timestamp: new Date().toISOString()
+        };
+        
+        log.info("Transfer NFT Request", {
+            playerId: currentPlayerId,
+            network: networkInfo.network,
+            nftObjectId: args.nftObjectId,
+            recipient: args.recipient
+        });
+        
+        // Store transfer request in player data for tracking
+        server.UpdateUserInternalData({
+            PlayFabId: currentPlayerId,
+            Data: {
+                lastTransferRequest: JSON.stringify({
+                    timestamp: transactionData.timestamp,
+                    network: networkInfo.network,
+                    nftObjectId: args.nftObjectId,
+                    recipient: args.recipient,
+                    status: "pending"
+                })
+            }
+        });
+        
+        // If backend service URL is provided, call it to execute the transaction
+        if (args.backendServiceUrl) {
+            try {
+                var backendRequest = {
+                    action: "transfer",
+                    transactionData: transactionData,
+                    playerId: currentPlayerId
+                };
+                
+                var backendResponse = http.request(
+                    args.backendServiceUrl,
+                    "post",
+                    JSON.stringify(backendRequest),
+                    "application/json",
+                    {
+                        "Content-Type": "application/json"
+                    }
+                );
+                
+                log.info("Backend service called for transfer", {
+                    statusCode: backendResponse.Code,
+                    playerId: currentPlayerId
+                });
+                
+                return {
+                    success: true,
+                    network: networkInfo.network,
+                    transactionData: transactionData,
+                    backendResponse: JSON.parse(backendResponse.Data || "{}"),
+                    message: "Transfer request sent to backend service"
+                };
+            } catch (httpError) {
+                log.error("Error calling backend service", {
+                    error: httpError.message,
+                    playerId: currentPlayerId
+                });
+                
+                // Return transaction data even if backend call fails
+                return {
+                    success: true,
+                    network: networkInfo.network,
+                    transactionData: transactionData,
+                    backendError: httpError.message,
+                    message: "Transaction data prepared, but backend service call failed"
+                };
+            }
+        }
+        
+        // Return transaction data for client/backend to execute
+        return {
+            success: true,
+            network: networkInfo.network,
+            transactionData: transactionData,
+            message: "Transfer transaction data prepared. Execute using a backend service or Sui client."
+        };
+        
+    } catch (error) {
+        log.error("Error in transferNFT", {
+            error: error.message,
+            playerId: currentPlayerId
+        });
+        
+        return {
+            success: false,
+            error: error.message,
+            message: "Failed to prepare transfer transaction"
+        };
+    }
+};
+
+// Get Mint History Function
+// Returns the minting history for the current player
+handlers.getMintHistory = function (args, context) {
+    try {
+        var playerData = server.GetUserInternalData({
+            PlayFabId: currentPlayerId,
+            Keys: ["lastMintRequest"]
+        });
+        
+        var mintHistory = [];
+        if (playerData.Data && playerData.Data["lastMintRequest"]) {
+            try {
+                var lastMint = JSON.parse(playerData.Data["lastMintRequest"].Value);
+                mintHistory.push(lastMint);
+            } catch (e) {
+                log.debug("Could not parse lastMintRequest", { error: e.message });
+            }
+        }
+        
+        return {
+            success: true,
+            playerId: currentPlayerId,
+            mintHistory: mintHistory,
+            count: mintHistory.length
+        };
+    } catch (error) {
+        log.error("Error in getMintHistory", {
+            error: error.message,
+            playerId: currentPlayerId
+        });
+        
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+// Get Transfer History Function
+// Returns the transfer history for the current player
+handlers.getTransferHistory = function (args, context) {
+    try {
+        var playerData = server.GetUserInternalData({
+            PlayFabId: currentPlayerId,
+            Keys: ["lastTransferRequest"]
+        });
+        
+        var transferHistory = [];
+        if (playerData.Data && playerData.Data["lastTransferRequest"]) {
+            try {
+                var lastTransfer = JSON.parse(playerData.Data["lastTransferRequest"].Value);
+                transferHistory.push(lastTransfer);
+            } catch (e) {
+                log.debug("Could not parse lastTransferRequest", { error: e.message });
+            }
+        }
+        
+        return {
+            success: true,
+            playerId: currentPlayerId,
+            transferHistory: transferHistory,
+            count: transferHistory.length
+        };
+    } catch (error) {
+        log.error("Error in getTransferHistory", {
+            error: error.message,
+            playerId: currentPlayerId
+        });
+        
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// ORIGINAL EXAMPLE FUNCTIONS
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // This is a Cloud Script function. "args" is set to the value of the "FunctionParameter" 
 // parameter of the ExecuteCloudScript API.
