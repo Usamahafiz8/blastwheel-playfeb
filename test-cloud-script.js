@@ -226,6 +226,142 @@ handlers.getSuiNetworkInfo = function (args, context) {
     };
 };
 
+// Add listNetworkVariables handler to test script
+handlers.listNetworkVariables = function (args, context) {
+    try {
+        var networkInfo = getNetworkConfig(args);
+        var config = networkInfo.config;
+        var format = (args && args.format) ? args.format.toLowerCase() : "detailed";
+        
+        var allVariables = [
+            { key: "SUI_NETWORK", name: "Sui Network RPC URL", required: true },
+            { key: "PACKAGE_ID", name: "Package ID", required: true },
+            { key: "PUBLISHER_ID", name: "Publisher ID", required: true },
+            { key: "TRANSFER_POLICY_ID", name: "Transfer Policy ID", required: true },
+            { key: "TRANSFER_POLICY_CAP_ID", name: "Transfer Policy Cap ID", required: false },
+            { key: "COLLECTION_ID", name: "Collection ID", required: true },
+            { key: "KIOSK_ID", name: "Kiosk ID", required: false },
+            { key: "KIOSK_OWNER_CAP_ID", name: "Kiosk Owner Cap ID", required: false },
+            { key: "SUPPLY_CAP_ID", name: "Supply Cap ID", required: false },
+            { key: "COUNTER_ID", name: "Counter ID", required: false },
+            { key: "BLASTWHEELZ_TYPE", name: "Blastwheelz Type", required: false },
+            { key: "LISTING_PRICE_MIST", name: "Listing Price (MIST)", required: false },
+            { key: "MINT_SUPPLY", name: "Mint Supply", required: false },
+            { key: "NEW_SUPPLY_LIMIT", name: "New Supply Limit", required: false }
+        ];
+        
+        var missingRequired = [];
+        var missingOptional = [];
+        var configured = [];
+        var variables = {};
+        
+        for (var i = 0; i < allVariables.length; i++) {
+            var variable = allVariables[i];
+            var value = config[variable.key];
+            var isSet = value !== "" && value !== null && value !== undefined;
+            
+            if (format === "detailed") {
+                variables[variable.key] = {
+                    key: variable.key,
+                    name: variable.name,
+                    value: isSet ? value : "",
+                    isSet: isSet,
+                    required: variable.required,
+                    type: typeof value
+                };
+            } else {
+                variables[variable.key] = isSet ? value : "";
+            }
+            
+            if (variable.required && !isSet) {
+                missingRequired.push(variable.key);
+            } else if (!variable.required && !isSet) {
+                missingOptional.push(variable.key);
+            } else {
+                configured.push(variable.key);
+            }
+        }
+        
+        var summary = {
+            total: allVariables.length,
+            configured: configured.length,
+            missingRequired: missingRequired.length,
+            missingOptional: missingOptional.length,
+            configuredList: configured,
+            missingRequiredList: missingRequired,
+            missingOptionalList: missingOptional,
+            isComplete: missingRequired.length === 0
+        };
+        
+        var result = {
+            success: true,
+            network: networkInfo.network,
+            format: format,
+            summary: summary,
+            variables: variables,
+            message: missingRequired.length === 0 
+                ? "All required variables are configured" 
+                : "Some required variables are missing"
+        };
+        
+        if (format === "detailed") {
+            result.detailedInfo = {
+                configured: configured,
+                missingRequired: missingRequired,
+                missingOptional: missingOptional
+            };
+        }
+        
+        return result;
+    } catch (error) {
+        mockLog.error("Error in listNetworkVariables", { error: error.message });
+        return {
+            success: false,
+            error: error.message,
+            message: "Failed to list network variables"
+        };
+    }
+};
+
+// Add listAllNetworkVariables handler to test script
+handlers.listAllNetworkVariables = function (args, context) {
+    try {
+        var format = (args && args.format) ? args.format.toLowerCase() : "detailed";
+        
+        var testnetResult = handlers.listNetworkVariables({ network: "testnet", format: format }, context);
+        var mainnetResult = handlers.listNetworkVariables({ network: "mainnet", format: format }, context);
+        
+        return {
+            success: true,
+            format: format,
+            testnet: {
+                network: testnetResult.network,
+                summary: testnetResult.summary,
+                variables: testnetResult.variables
+            },
+            mainnet: {
+                network: mainnetResult.network,
+                summary: mainnetResult.summary,
+                variables: mainnetResult.variables
+            },
+            comparison: {
+                testnetConfigured: testnetResult.summary.configured,
+                mainnetConfigured: mainnetResult.summary.configured,
+                testnetComplete: testnetResult.summary.isComplete,
+                mainnetComplete: mainnetResult.summary.isComplete
+            },
+            message: "Network variables listed for both testnet and mainnet"
+        };
+    } catch (error) {
+        mockLog.error("Error in listAllNetworkVariables", { error: error.message });
+        return {
+            success: false,
+            error: error.message,
+            message: "Failed to list all network variables"
+        };
+    }
+};
+
 // Add mint and transfer handlers to test script
 handlers.mintNFT = function (args, context) {
     try {
@@ -449,6 +585,27 @@ function runTests() {
         recipient: "invalid-address"
     }, {});
     console.log(JSON.stringify(result11, null, 2));
+    console.log("");
+    
+    // Test 12: List Network Variables (Testnet - Detailed)
+    console.log("TEST 12: List Network Variables (Testnet - Detailed)");
+    console.log("-".repeat(60));
+    var result12 = handlers.listNetworkVariables({ network: "testnet", format: "detailed" }, {});
+    console.log(JSON.stringify(result12, null, 2));
+    console.log("");
+    
+    // Test 13: List Network Variables (Mainnet - Simple)
+    console.log("TEST 13: List Network Variables (Mainnet - Simple)");
+    console.log("-".repeat(60));
+    var result13 = handlers.listNetworkVariables({ network: "mainnet", format: "simple" }, {});
+    console.log(JSON.stringify(result13, null, 2));
+    console.log("");
+    
+    // Test 14: List All Network Variables (Both Networks)
+    console.log("TEST 14: List All Network Variables (Both Networks)");
+    console.log("-".repeat(60));
+    var result14 = handlers.listAllNetworkVariables({ format: "detailed" }, {});
+    console.log(JSON.stringify(result14, null, 2));
     console.log("");
     
     console.log("=".repeat(60));
