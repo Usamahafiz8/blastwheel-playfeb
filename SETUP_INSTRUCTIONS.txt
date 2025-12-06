@@ -1,0 +1,51 @@
+═══════════════════════════════════════════════════════════════
+HOW TO MAKE MINT FUNCTION EXECUTE ON BLOCKCHAIN
+═══════════════════════════════════════════════════════════════
+
+The transaction is NOT executing because you need a backend service.
+
+STEP 1: Start Backend Service
+──────────────────────────────
+Run this command in terminal:
+
+    cd playfeb
+    ./START_BACKEND.sh
+
+OR manually:
+    npm start
+
+The backend will run on: http://localhost:3000
+
+STEP 2: Make Backend Accessible to PlayFab
+───────────────────────────────────────────
+
+Option A: Use ngrok (for testing)
+    ngrok http 3000
+    Copy the https URL (e.g., https://abc123.ngrok.io)
+
+Option B: Deploy to cloud (for production)
+    - Deploy backend-service-example.ts to Heroku/AWS/etc
+    - Get your public URL
+
+STEP 3: Configure PlayFab
+──────────────────────────
+Go to PlayFab Game Manager:
+1. Content > Title Data
+2. Add key: BACKEND_SERVICE_URL
+3. Value: http://your-url:3000/mint
+   (or https://your-ngrok-url.ngrok.io/mint)
+
+STEP 4: Test
+────────────
+Call mintNFT in PlayFab - it will now execute on blockchain!
+
+═══════════════════════════════════════════════════════════════
+
+WHY IT'S NOT WORKING NOW:
+──────────────────────────
+- PlayFab Cloud Script cannot execute Sui transactions directly
+- It needs a backend service to sign and execute
+- The backend service is NOT running yet
+
+Once you start the backend and configure the URL, it will work!
+
